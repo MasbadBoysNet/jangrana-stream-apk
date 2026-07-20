@@ -1,7 +1,9 @@
 package id.my.jangrana.stream
 
 import android.annotation.SuppressLint
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -10,6 +12,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebChromeClient
+import android.webkit.PermissionRequest
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -21,6 +24,11 @@ import android.widget.ProgressBar
 import android.widget.TextView
 
 class MainActivity : Activity() {
+    private val runtimePermissions = arrayOf(
+        Manifest.permission.CAMERA,
+        Manifest.permission.RECORD_AUDIO
+    )
+
     private val urls = listOf(
         "https://stream.jangrana.my.id/mobile.html?v=34",
         "https://live.jangrana.my.id/mobile.html?v=34",
@@ -101,6 +109,12 @@ class MainActivity : Activity() {
                 progress.progress = newProgress
                 progress.visibility = if (newProgress >= 100) View.GONE else View.VISIBLE
             }
+
+            override fun onPermissionRequest(request: PermissionRequest?) {
+                runOnUiThread {
+                    request?.grant(request.resources)
+                }
+            }
         }
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
@@ -113,6 +127,7 @@ class MainActivity : Activity() {
             }
         }
 
+        ensureRuntimePermissions()
         loadCurrent()
     }
 
@@ -158,5 +173,10 @@ class MainActivity : Activity() {
         val network = manager.activeNetwork ?: return false
         val caps = manager.getNetworkCapabilities(network) ?: return false
         return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    private fun ensureRuntimePermissions() {
+        val missing = runtimePermissions.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isNotEmpty()) requestPermissions(missing.toTypedArray(), 10)
     }
 }
